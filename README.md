@@ -1,282 +1,513 @@
-# Memory Intelligence SDK
+# Memory Intelligence Python SDK
 
-The official Python SDK for Memory Intelligence - Verifiable meaning infrastructure for AI.
+**Build apps that remember what matters.**
 
-[![PyPI](https://img.shields.io/pypi/v/memoryintelligence.svg)](https://pypi.org/project/memoryintelligence/)
-[![License](https://img.shields.io/pypi/l/memoryintelligence.svg)](https://pypi.org/project/memoryintelligence/)
+This SDK helps you turn raw content—text, images, conversations—into structured meaning that can be searched, compared, and reasoned about in Python. Think of it as giving your backend a memory that actually understands context.
 
-## Quick Start
+We built this because we were tired of vector databases that forget context, RAG systems that hallucinate, and "AI memory" that's just glorified search. Memory Intelligence is different: it captures **meaning**, not just words.
 
-```python
-from memoryintelligence import MemoryClient
+---
 
-# Initialize client
-mi = MemoryClient(api_key="mi_sk_...")
+## What You Can Build
 
-# Process content → meaning
-umo = mi.umo.process("Meeting notes from today", user_ulid="01ABC...")
+- **Personal memory apps** — backends for second-brain apps that actually remember context
+- **Enterprise knowledge bases** — where tribal knowledge doesn't vanish when people leave
+- **AI assistants** — with memory that spans conversations and stays grounded
+- **Content recommendation engines** — that understand context, not just keywords
+- **Research tools** — that connect ideas across documents and time
+- **Data pipelines** — that preserve meaning through transformations
 
-# Search meaning
-results = mi.umo.search("What did we discuss?", user_ulid="01ABC...", explain=True)
+**Works everywhere:** Django, FastAPI, Flask, AWS Lambda, Google Cloud Functions, async or sync.
 
-# Match for recommendations
-match = mi.umo.match("01ABC...", "01XYZ...", explain=True)
+---
 
-# Get explanation
-explanation = mi.umo.explain("01ABC...")
+## Why This SDK Exists
 
-# Delete for GDPR
-result = mi.umo.delete(user_ulid="01ABC...")
-```
+Most "AI memory" tools are just fancy search. They store your data, chunk it up, embed it, and hope for the best. When you search, you get back... whatever the embedding model thinks is similar. No explanation, no provenance, no guarantee it's relevant.
 
-## Key Features
+**We do it differently:**
 
-- **Meaning-First Architecture**: Raw content discarded after processing
-- **Five Core Operations**: Process, Search, Match, Explain, Delete
-- **Provenance Tracking**: Cryptographic verification of content lineage
-- **GDPR Compliance**: One-call data deletion with audit proof
-- **Built-in Telemetry**: Debug logs for content processing
-- **Simplified API**: Only 12 essential exports
+- **Meaning-first:** We extract entities, topics, and structured meaning before discarding raw text (privacy by default)
+- **Explainable:** Every search result tells you *why* it matched—semantic, temporal, graph connections
+- **Provenance:** Cryptographic audit trail from raw content → meaning → retrieval
+- **Privacy:** Your data isn't our business model. We process meaning, not raw content.
 
-## Installation
+---
+
+## What Makes This SDK Different
+
+### Typed from the Ground Up
+
+Full Pydantic models for every request and response. Type hints everywhere. No guessing, no `dict` soup.
+
+### Async + Sync
+
+Same API, two clients:
+- `MemoryClient` — synchronous (uses `httpx`)
+- `AsyncMemoryClient` — async/await (great for FastAPI, async workflows)
+
+### Built for Real Apps
+
+- **Auto-retry with backoff** — because networks fail
+- **Request timeout control** — don't hang forever
+- **Connection pooling** — reuse connections efficiently
+- **Structured logging** — debug-friendly output
+
+### Privacy by Design
+
+- **ULID identifiers** — no external IDs, emails, or UUIDs stored
+- **Meaning-first** — raw content discarded after processing (configurable)
+- **GDPR-ready** — one-call data deletion with audit proof
+
+### Developer-Friendly
+
+- Type hints everywhere
+- Comprehensive error messages
+- Context manager support
+- Extensive documentation
+
+---
+
+## Getting Started
+
+### Installation
 
 ```bash
 pip install memoryintelligence
 ```
 
-## Usage Guide
+### Environment Setup
+
+Create a `.env` file (and **never commit it**):
+
+```bash
+MI_API_KEY=mi_sk_test_your_secret_key_here
+```
+
+Add it to `.gitignore`:
+
+```bash
+# .gitignore
+.env
+.env.local
+```
 
 ### Initialize the Client
+
+**Synchronous:**
 
 ```python
 from memoryintelligence import MemoryClient
 
-# For production (API key required)
-mi = MemoryClient(api_key="mi_sk_prod_...")
+# Initialize with API key
+mi = MemoryClient(api_key="mi_sk_test_...")
 
-# For development
-mi = MemoryClient(api_key="mi_sk_dev_...")
-
-# For specific user (multi-tenant)
-user_mi = mi.for_user("01USER12345678901234567890")
+# Or use environment variable
+mi = MemoryClient()  # reads MI_API_KEY from env
 ```
 
-### Process Content
-
-Convert raw content to meaning (discards raw content by default):
-
-```python
-from memoryintelligence import RetentionPolicy, PIIHandling, ProvenanceMode
-
-umo = mi.umo.process(
-    "Budget approved for Q3 initiatives",
-    user_ulid="01ABC...",
-    retention_policy=RetentionPolicy.MEANING_ONLY,
-    pii_handling=PIIHandling.EXTRACT_AND_REDACT,
-    provenance_mode=ProvenanceMode.STANDARD
-)
-
-print(umo.entities)      # [Entity(text="Q3", type="DATE"), ...]
-print(umo.topics)        # ["budget", "initiatives"]
-print(umo.svo_triples)   # [SVOTriple(subject="budget", verb="approved", object="initiatives")]
-print(umo.umo_id)        # "01KGE95Q4P9H89H63T26FNKKBR"
-```
-
-### Search for Meaning
-
-Find relevant memories with explanation:
-
-```python
-from datetime import datetime, timezone
-
-results = mi.umo.search(
-    "Q3 budget decisions",
-    user_ulid="01ABC...",
-    explain=True,
-    limit=5,
-    topics=["budget", "finance"],
-    date_from=datetime(2024, 1, 1, tzinfo=timezone.utc)
-)
-
-for result in results.results:
-    print(f"Score: {result.score:.2f}")
-    print(f"Summary: {result.umo.summary}")
-    if result.explain:
-        print(f"Why: {result.explain.human.summary}")
-```
-
-### Match for Recommendations
-
-Compare two memories for relevance:
-
-```python
-match = mi.umo.match(
-    source_ulid="01ABC...",
-    candidate_ulid="01XYZ...",
-    explain=True
-)
-
-print(f"Match score: {match.score}")
-print(f"Is match: {match.match}")
-if match.explain:
-    print(f"Reason: {match.explain.human.summary}")
-```
-
-### Get Explanations
-
-Understand why content is relevant:
-
-```python
-from memoryintelligence import ExplainLevel
-
-explanation = mi.umo.explain(
-    "01ABC...",
-    level=ExplainLevel.FULL
-)
-
-print(explanation.human.summary)
-print(explanation.human.key_reasons)
-print(explanation.audit.semantic_score)
-```
-
-### Delete Data
-
-GDPR-compliant data removal:
-
-```python
-from memoryintelligence import Scope
-
-result = mi.umo.delete(
-    user_ulid="01ABC...",
-    scope=Scope.USER
-)
-
-print(f"Deleted {result.deleted_count} memories")
-```
-
-## Async Support
-
-For async frameworks:
+**Asynchronous:**
 
 ```python
 from memoryintelligence import AsyncMemoryClient
 
-mi = AsyncMemoryClient(api_key="mi_sk_...")
-
-# Process
-umo = await mi.umo.process("Content", user_ulid="01ABC...")
-
-# Search with iteration
-async for result in mi.umo.search_iter("query", user_ulid="01ABC..."):
-    print(result.umo.summary)
-
-# Batch processing
-contents = ["Note 1", "Note 2", "Note 3"]
-results = await mi.umo.process_batch(contents, user_ulid="01ABC...")
+mi = AsyncMemoryClient(api_key="mi_sk_test_...")
 ```
 
-## Edge Deployment (HIPAA/Air-gapped)
+---
 
-For regulated industries:
+## Core Operations
+
+### Process Content → Meaning
+
+Turn raw content into a Unified Memory Object (UMO):
 
 ```python
-from memoryintelligence import EdgeClient
+from memoryintelligence import MemoryClient, RetentionPolicy, PIIHandling
 
-# HIPAA-compliant edge deployment
-edge = EdgeClient(
-    endpoint="https://mi.internal.yourcompany.com",
-    api_key="mi_sk_...",
-    hipaa_mode=True
+mi = MemoryClient(api_key="mi_sk_test_...")
+
+umo = mi.umo.process(
+    "Meeting notes about Q2 strategy and hiring plans",
+    user_ulid="01ABC...",
+    retention_policy=RetentionPolicy.MEANING_ONLY,  # raw content discarded
+    pii_handling=PIIHandling.EXTRACT_AND_REDACT,
 )
 
-# Process locally (data never leaves)
-umo = edge.umo.process(clinical_note, user_ulid="01PATIENT...")
+print(umo.entities)  # [Entity(text="Q2", type="DATE"), ...]
+print(umo.topics)    # ["strategy", "hiring"]
+print(umo.summary)   # "Discussion of Q2 strategy and hiring..."
+```
 
-# Air-gapped (no external calls)
-air_gapped = EdgeClient(
-    endpoint="https://mi.internal.com",
-    air_gapped=True  # No API key needed
+**Async version:**
+
+```python
+from memoryintelligence import AsyncMemoryClient
+
+mi = AsyncMemoryClient(api_key="mi_sk_test_...")
+
+umo = await mi.umo.process(
+    "Meeting notes about Q2 strategy and hiring plans",
+    user_ulid="01ABC...",
 )
 ```
+
+### Search for Meaning
+
+Find memories by what they **mean**, not just keywords:
+
+```python
+results = mi.umo.search(
+    "What were our hiring plans?",
+    user_ulid="01ABC...",
+    explain=True,  # tells you WHY each result matched
+)
+
+for result in results:
+    print(result.umo.summary)
+    print(result.explanation.why_summary)  # plain-language explanation
+```
+
+### Match Memories
+
+Compare two memories for relevance (great for recommendations):
+
+```python
+match = mi.umo.match(
+    "01UMO1...",  # UMO ID 1
+    "01UMO2...",  # UMO ID 2
+    explain=True,
+)
+
+print(match.score)  # 0.0 to 1.0
+print(match.explanation.why_summary)  # "Both discuss Q2 hiring..."
+```
+
+### Explain a Memory
+
+Get the full breakdown of what makes a memory meaningful:
+
+```python
+explanation = mi.umo.explain("01UMO...")
+
+print(explanation.entities)   # all extracted entities
+print(explanation.topics)     # key topics
+print(explanation.relations)  # entity relationships
+print(explanation.embedding_metadata)  # model version, dimensions
+```
+
+### Delete User Data (GDPR)
+
+One-call data deletion with audit proof:
+
+```python
+result = mi.umo.delete(user_ulid="01ABC...")
+
+print(result.deleted_count)  # number of UMOs deleted
+print(result.audit_hash)     # cryptographic proof of deletion
+```
+
+---
+
+## Advanced Features
+
+### Batch Processing
+
+Process multiple items efficiently:
+
+```python
+contents = [
+    "Meeting notes from Monday",
+    "Client feedback email",
+    "Product brainstorm session",
+]
+
+for content in contents:
+    umo = mi.umo.process(content, user_ulid="01ABC...")
+    print(f"Processed: {umo.umo_id}")
+```
+
+**Async batch processing:**
+
+```python
+import asyncio
+from memoryintelligence import AsyncMemoryClient
+
+mi = AsyncMemoryClient(api_key="mi_sk_test_...")
+
+async def process_batch(contents):
+    tasks = [
+        mi.umo.process(content, user_ulid="01ABC...")
+        for content in contents
+    ]
+    return await asyncio.gather(*tasks)
+
+contents = [...]
+umos = await process_batch(contents)
+```
+
+### Context Manager Support
+
+Automatically handle connection lifecycle:
+
+```python
+with MemoryClient(api_key="mi_sk_test_...") as mi:
+    umo = mi.umo.process("Meeting notes", user_ulid="01ABC...")
+    results = mi.umo.search("hiring", user_ulid="01ABC...")
+# Connection closed automatically
+```
+
+**Async context manager:**
+
+```python
+async with AsyncMemoryClient(api_key="mi_sk_test_...") as mi:
+    umo = await mi.umo.process("Meeting notes", user_ulid="01ABC...")
+    results = await mi.umo.search("hiring", user_ulid="01ABC...")
+```
+
+### Custom Timeouts
+
+Control request timeouts:
+
+```python
+mi = MemoryClient(
+    api_key="mi_sk_test_...",
+    timeout=30.0,  # 30 seconds
+)
+
+# Or per-request:
+umo = mi.umo.process(
+    content,
+    user_ulid="01ABC...",
+    timeout=60.0,  # 60 seconds for this request
+)
+```
+
+### Cryptographic Verification
+
+Verify content provenance:
+
+```python
+from memoryintelligence.crypto import compute_hash, verify_hash
+
+# Compute hash before processing
+original_hash = compute_hash("Meeting notes")
+
+# Process content
+umo = mi.umo.process("Meeting notes", user_ulid="01ABC...")
+
+# Verify hash matches
+assert verify_hash("Meeting notes", umo.provenance_hash)
+```
+
+---
+
+## Working with FastAPI
+
+Perfect for FastAPI backends:
+
+```python
+from fastapi import FastAPI, HTTPException, Depends
+from memoryintelligence import AsyncMemoryClient
+from pydantic import BaseModel
+
+app = FastAPI()
+
+# Dependency injection
+async def get_mi_client():
+    return AsyncMemoryClient(api_key="mi_sk_test_...")
+
+class ProcessRequest(BaseModel):
+    content: str
+    user_ulid: str
+
+@app.post("/api/process")
+async def process_memory(
+    req: ProcessRequest,
+    mi: AsyncMemoryClient = Depends(get_mi_client)
+):
+    try:
+        umo = await mi.umo.process(req.content, user_ulid=req.user_ulid)
+        return {"umo_id": umo.umo_id, "summary": umo.summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/search")
+async def search_memories(
+    query: str,
+    user_ulid: str,
+    mi: AsyncMemoryClient = Depends(get_mi_client)
+):
+    results = await mi.umo.search(query, user_ulid=user_ulid, explain=True)
+    return {
+        "results": [
+            {
+                "summary": r.umo.summary,
+                "score": r.score,
+                "why": r.explanation.why_summary,
+            }
+            for r in results
+        ]
+    }
+```
+
+---
+
+## Response Types
+
+All responses are Pydantic models with full type hints:
+
+```python
+from memoryintelligence.models import UMO, SearchResult, MatchResult, Entity
+
+# Unified Memory Object
+class UMO:
+    umo_id: str
+    entities: list[Entity]
+    topics: list[str]
+    summary: str
+    embedding: list[float]
+    timestamp: str
+    ingested_at: str
+    provenance_hash: str
+    # ...and more
+
+# Search result
+class SearchResult:
+    umo: UMO
+    score: float
+    explanation: Explanation
+
+# Match result
+class MatchResult:
+    score: float
+    explanation: Explanation
+    shared_entities: list[str]
+    shared_topics: list[str]
+```
+
+---
 
 ## Error Handling
 
+All errors are structured and descriptive:
+
 ```python
-from memoryintelligence import (
-    MemoryClient,
-    LicenseError,
-    RateLimitError,
+from memoryintelligence.exceptions import (
+    AuthenticationError,
     ValidationError,
-    AuthenticationError
+    GovernanceError,
+    RateLimitError,
+    ServerError,
 )
 
 try:
-    mi = MemoryClient(api_key="mi_sk_...")
-    umo = mi.umo.process("Content", user_ulid="01ABC...")
-except LicenseError as e:
-    print(f"License expired {e.days_expired} days ago")
-    print(f"Renew at: {e.renew_url}")
-except RateLimitError as e:
-    print(f"Rate limited. Retry after {e.retry_after} seconds")
-except ValidationError as e:
-    print(f"Validation failed: {e.message}")
+    umo = mi.umo.process(content, user_ulid="01ABC...")
 except AuthenticationError:
     print("Invalid API key")
+except ValidationError as e:
+    print(f"Invalid input: {e.message}")
+except RateLimitError as e:
+    print(f"Rate limit hit, retry after: {e.retry_after}")
+except GovernanceError as e:
+    print(f"Governance policy violation: {e.message}")
+except ServerError as e:
+    print(f"Server error: {e.message}")
 ```
 
-## Webhook Verification
+---
 
-```python
-from memoryintelligence import verify_webhook_signature
+## Logging
 
-# Verify webhook from Memory Intelligence
-is_valid = verify_webhook_signature(
-    payload=request_body,
-    signature=headers["X-MI-Signature"],
-    secret="whsec_..."
-)
-```
-
-## Monitoring & Telemetry
-
-The SDK provides built-in telemetry for operational visibility:
+Built-in structured logging:
 
 ```python
 import logging
+
+# Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
+
+mi = MemoryClient(api_key="mi_sk_test_...")
+
+# Will log all requests/responses
+umo = mi.umo.process("Meeting notes", user_ulid="01ABC...")
 ```
 
-### Key Log Events:
-- `DEBUG`: Content processing metrics (size, time)
-- `INFO`: Operation completion with results
-- `WARNING`: PII detection events
-- `ERROR`: API and integration errors
+---
 
-## Configuration
+## Testing
 
-Environment variables:
+Use test API keys for development:
 
-```bash
-# Required for persistent encryption
-export MI_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+```python
+# Test key (starts with mi_sk_test_)
+mi = MemoryClient(api_key="mi_sk_test_...")
 
-# API configuration
-export MI_API_KEY="mi_sk_live_..."
-export MI_BASE_URL="https://api.memoryintelligence.io"
+# Production key (starts with mi_sk_live_)
+mi = MemoryClient(api_key="mi_sk_live_...")
 ```
+
+Mock responses for unit tests:
+
+```python
+from unittest.mock import Mock
+from memoryintelligence import MemoryClient
+from memoryintelligence.models import UMO
+
+def test_process():
+    mi = MemoryClient(api_key="mi_sk_test_...")
+    mi.umo.process = Mock(return_value=UMO(
+        umo_id="01ABC...",
+        summary="Test summary",
+        # ...
+    ))
+    
+    umo = mi.umo.process("Test content", user_ulid="01USER...")
+    assert umo.umo_id == "01ABC..."
+```
+
+---
+
+## Examples
+
+Check out working examples in the [examples/](./examples/) directory:
+
+- **FastAPI integration** — Full async API backend
+- **Django integration** — Sync client with Django views
+- **Batch processing** — Process thousands of documents
+- **CLI tool** — Command-line memory processor
+
+---
 
 ## Documentation
 
-Full documentation is available at:
-- [API Reference](https://docs.memoryintelligence.io)
-- [Getting Started Guide](https://memoryintelligence.io/docs/getting-started)
+- [API Reference](https://docs.memoryintelligence.io/reference/python-sdk) — Full API docs
+- [Quickstart Guide](./docs/quickstart.md) — Get started in 5 minutes
+- [Enterprise Guide](./docs/enterprise.md) — Production deployment patterns
+- [Encryption Guide](./docs/encryption.md) — End-to-end encryption setup
+
+---
+
+## Requirements
+
+- Python 3.8+
+- `httpx` (HTTP client)
+- `pydantic` (data validation)
+
+---
 
 ## Support
 
-For SDK issues, please contact:
-- support@memoryintelligence.io
-- GitHub Issues: [Create New Issue](https://github.com/memoryintelligence/sdk-python/issues/new)
+- **Documentation:** [docs.memoryintelligence.io](https://docs.memoryintelligence.io)
+- **GitHub Issues:** [github.com/somewhere11/memoryintelligence-python-sdk/issues](https://github.com/somewhere11/memoryintelligence-python-sdk/issues)
+- **Email:** [sdk@memoryintelligence.io](mailto:sdk@memoryintelligence.io)
+
+---
 
 ## License
 
-This SDK is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](./LICENSE) for details.
+
+---
+
+Built with care by the somewhere team. We're building tools that make memory meaningful, private, and yours.
