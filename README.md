@@ -6,25 +6,27 @@ This SDK helps you turn raw content—text, images, conversations—into structu
 
 We built this because we were tired of vector databases that forget context, RAG systems that hallucinate, and "AI memory" that's just glorified search. Memory Intelligence is different: it captures **meaning**, not just words.
 
+**Works with:** FastAPI, Django, Flask, AWS Lambda, Google Cloud Functions, any Python backend.
+
 ---
 
-## 🔐 Security First
+## 📦 A Note About API Keys
 
-**Python SDK is designed for backend/server-side use only.**
+This SDK is designed for backend/server-side use. Your API key grants full access to your account, so:
 
-Your API key grants full access to your account. Never:
-- ❌ Expose it in client-side code
-- ❌ Commit it to version control
-- ❌ Send it to frontend applications
-- ❌ Log it in error messages
+**Keep it server-side:**
+```python
+# ✅ Good - server environment variable
+mi = MemoryClient(api_key=os.getenv('MI_API_KEY'))
+```
 
-**✅ Always:**
-- Store in environment variables (`MI_API_KEY`)
-- Use `.env` files (never committed)
-- Keep on server-side (FastAPI, Django, Flask)
-- Use your own auth for frontend → backend access
+**Never in client code:**
+```python
+# ❌ Don't - exposed in frontend/logs
+mi = MemoryClient(api_key='mi_sk_live_...')
+```
 
-For frontend access: Build a proxy API that uses your API key server-side, then expose restricted endpoints with your own authentication.
+For web apps: Use your API key in the backend, build your own endpoints with your auth, then let your frontend call those.
 
 ---
 
