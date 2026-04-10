@@ -8,6 +8,26 @@ We built this because we were tired of vector databases that forget context, RAG
 
 ---
 
+## 🔐 Security First
+
+**Python SDK is designed for backend/server-side use only.**
+
+Your API key grants full access to your account. Never:
+- ❌ Expose it in client-side code
+- ❌ Commit it to version control
+- ❌ Send it to frontend applications
+- ❌ Log it in error messages
+
+**✅ Always:**
+- Store in environment variables (`MI_API_KEY`)
+- Use `.env` files (never committed)
+- Keep on server-side (FastAPI, Django, Flask)
+- Use your own auth for frontend → backend access
+
+For frontend access: Build a proxy API that uses your API key server-side, then expose restricted endpoints with your own authentication.
+
+---
+
 ## What You Can Build
 
 - **Personal memory apps** — backends for second-brain apps that actually remember context
