@@ -1,0 +1,21 @@
+# Include essential files
+include README.md
+include LICENSE
+include CHANGELOG.md
+
+# Include package data
+recursive-include memoryintelligence *.py
+
+# Exclude development files
+exclude .gitignore
+exclude .env*
+recursive-exclude tests *
+recursive-exclude demos *
+recursive-exclude examples *
+recursive-exclude .venv *
+recursive-exclude __pycache__ *
+recursive-exclude *.egg-info *
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~
+global-exclude .DS_Store

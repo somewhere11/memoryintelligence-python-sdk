@@ -1,0 +1,166 @@
+openapi: 3.0.0
+info:
+  title: Memory Intelligence API
+  description: |
+    Verifiable meaning infrastructure with privacy-first design.
+
+    All content is encrypted client-side with AES-256-GCM before transmission.
+  version: 2.0.0
+  contact:
+    name: Memory Intelligence Team
+    email: sdk@memoryintelligence.dev
+  license:
+    name: MIT
+    url: https://github.com/memoryintelligence/sdk-python/blob/main/LICENSE
+
+servers:
+  - url: https://api.memoryintelligence.dev
+    description: Production API
+  - url: https://api.staging.memoryintelligence.dev
+    description: Staging API
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/umo/process:
+    post:
+      summary: Process content into UMO
+      description: |
+        Extract meaning from text content. Returns a MeaningObject with
+        entities, topics, SVO triples, and semantic summary.
+
+        Content must be encrypted with AES-256-GCM before sending.
+      operationId: processUMO
+      tags:
+        - UMO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRequest'
+      responses:
+        '200':
+          description: Successfully processed content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeaningObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimit'
+        '451':
+          $ref: '#/components/responses/PIIViolation'
+
+  /v1/umo/search:
+    post:
+      summary: Search UMOs
+      description: Semantic search across UMOs using natural language query.
+      operationId: searchUMOs
+      tags:
+        - UMO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /v1/license/validate:
+    post:
+      summary: Validate license
+      operationId: validateLicense
+      tags:
+        - License
+      responses:
+        '200':
+          description: License information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseInfo'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: mi_sk_
+
+  schemas:
+    ProcessRequest:
+      type: object
+      required:
+        - content
+        - user_ulid
+      properties:
+        content:
+          type: object
+          description: Encrypted content payload
+        user_ulid:
+          type: string
+          pattern: '^[0-9A-HJ-KM-NP-TV-Z]{26}$'
+
+    MeaningObject:
+      type: object
+      properties:
+        umo_id:
+          type: string
+        user_ulid:
+          type: string
+        summary:
+          type: string
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+        - user_ulid
+      properties:
+        query:
+          type: string
+        user_ulid:
+          type: string
+
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+        total_count:
+          type: integer
+
+    LicenseInfo:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, expired, revoked, suspended]
+        tier:
+          type: string
+          enum: [trial, starter, professional, enterprise]
+
+  responses:
+    BadRequest:
+      description: Invalid request
+    Unauthorized:
+      description: Invalid or missing API key
+    PaymentRequired:
+      description: License required or expired
+    RateLimit:
+      description: Too many requests
+    PIIViolation:
+      description: PII detected in request
